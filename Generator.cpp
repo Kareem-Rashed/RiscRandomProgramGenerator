@@ -67,7 +67,12 @@ pair<string,string> Generator::generateI() {
         {{0b100, "0010011"}, "xori"},
         {{0b001, "0010011"}, "slli"},
         {{0b101, "0010011"}, "srli"},
-        {{0b000, "1100111"}, "jalr"}  // Added JALR instruction
+        {{0b000, "1100111"}, "jalr"},
+        {{0b000, "0000011"}, "lb"},
+        {{0b001, "0000011"}, "lh"},
+        {{0b010, "0000011"}, "lw"},
+        {{0b100, "0000011"}, "lbu"},
+        {{0b101, "0000011"}, "lhu"}
     };
 
     std::uniform_int_distribution<int> pick(0, (int)I_TYPE.size() - 1);
@@ -90,7 +95,7 @@ pair<string,string> Generator::generateI() {
         return {binary, assembly};
     }
 
-    // For regular I-type and jalr
+    // For regular I-type, jalr, and loads
     uint32_t imm_u = static_cast<uint32_t>(imm) & 0xFFFu;
     string binary = bitset<12>(imm_u).to_string() +
                    bitset<5>(rs1).to_string() +
@@ -99,7 +104,8 @@ pair<string,string> Generator::generateI() {
                    opcode;
 
     string assembly;
-    if (instr_name == "jalr") {
+    if (instr_name == "jalr" || instr_name == "lb" || instr_name == "lh" ||
+        instr_name == "lw" || instr_name == "lbu" || instr_name == "lhu") {
         assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm) + "(x" + to_string(rs1) + ")";
     } else {
         assembly = instr_name + " x" + to_string(rd) + ", x" + to_string(rs1) + ", " + to_string(imm);
@@ -273,6 +279,6 @@ void Generator::StartMixed() {
             case 'J': instr = generateJ(); break;
             default: instr = generateR(); break;
         }
-        cout << "Mem[" << i << "] = 1'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
+        cout << "Mem[" << i << "] =  1'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
     }
 }
