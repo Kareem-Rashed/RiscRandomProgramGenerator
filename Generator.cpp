@@ -15,30 +15,28 @@ Generator::Generator(char type, int NumofInstructions, char Format)
 }
 
 pair<string,string> Generator::generateR() {
-    // Select random registers and function bits using rng
     std::uniform_int_distribution<int> regDist(0, 31);
     int rd = regDist(rng);
     int rs1 = regDist(rng);
     int rs2 = regDist(rng);
-    std::uniform_int_distribution<int> funcDist(0, 7);
-    int funct3 = funcDist(rng) & 0x7;
 
-    // R-format: common R-type instructions
-    vector<pair<int, string>> FUNC7 = {
-        {0b0000000, "add"},
-        {0b0100000, "sub"},
-        {0b0000000, "and"},
-        {0b0000000, "or"},
-        {0b0000000, "xor"},
-        {0b0000000, "sll"},
-        {0b0000000, "srl"},
-        {0b0100000, "sra"}
+    // R-format: (funct7, funct3, name)
+    vector<tuple<int, int, string>> R_INSTRUCTIONS = {
+        {0b0000000, 0b000, "add"},
+        {0b0100000, 0b000, "sub"},
+        {0b0000000, 0b111, "and"},
+        {0b0000000, 0b110, "or"},
+        {0b0000000, 0b100, "xor"},
+        {0b0000000, 0b001, "sll"},
+        {0b0000000, 0b101, "srl"},
+        {0b0100000, 0b101, "sra"}
     };
 
-    std::uniform_int_distribution<int> pick(0, (int)FUNC7.size() - 1);
+    std::uniform_int_distribution<int> pick(0, (int)R_INSTRUCTIONS.size() - 1);
     int id = pick(rng);
-    int funct7 = FUNC7[id].first;
-    string instr_name = FUNC7[id].second;
+    int funct7 = get<0>(R_INSTRUCTIONS[id]);
+    int funct3 = get<1>(R_INSTRUCTIONS[id]);
+    string instr_name = get<2>(R_INSTRUCTIONS[id]);
 
     // Create binary string (R-format: funct7 | rs2 | rs1 | funct3 | rd | opcode)
     string binary =
@@ -47,16 +45,13 @@ pair<string,string> Generator::generateR() {
         bitset<5>(rs1).to_string() +
         bitset<3>(funct3).to_string() +
         bitset<5>(rd).to_string() +
-        "0110011"; // R-type opcode
+        "0110011";
 
-    // Create assembly string
     string assembly = instr_name + " x" + to_string(rd) + ", x" +
                      to_string(rs1) + ", x" + to_string(rs2);
 
     return {binary, assembly};
 }
-
-
 pair<string,string> Generator::generateI() {
     std::uniform_int_distribution<int> regDist(0, 31);
     int rd = regDist(rng);
@@ -250,6 +245,26 @@ void Generator::Start() {
     for (int i = 0; i < NumofInstructions; ++i) {
         pair<string,string> instr;
         switch (Format) {
+            case 'R': instr = generateR(); break;
+            case 'I': instr = generateI(); break;
+            case 'S': instr = generateS(); break;
+            case 'B': instr = generateB(); break;
+            case 'U': instr = generateU(); break;
+            case 'J': instr = generateJ(); break;
+            default: instr = generateR(); break;
+        }
+        cout << "Mem[" << i << "] = " << instr.first << "    // " << instr.second << endl; //formated for vivado
+    }
+}
+
+void Generator::StartMixed() {
+    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J'};
+    std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
+
+    for (int i = 0; i < NumofInstructions; ++i) {
+        char format = formats[pick(rng)];
+        pair<string,string> instr;
+        switch (format) {
             case 'R': instr = generateR(); break;
             case 'I': instr = generateI(); break;
             case 'S': instr = generateS(); break;

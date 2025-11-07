@@ -33,6 +33,7 @@ private:
 public:
     Generator(char type, int NumofInstructions, char Format);
     void Start();
+    void StartMixed();
 
 };
 
