@@ -65,44 +65,50 @@ pair<string,string> Generator::generateI() {
     std::uniform_int_distribution<int> immDist(-2048, 2047);
     int imm = immDist(rng);
 
-    vector<pair<int, string>> I_TYPE = {
-        {0b000, "addi"},
-        {0b111, "andi"},
-        {0b110, "ori"},
-        {0b100, "xori"},
-        {0b001, "slli"},
-        {0b101, "srli"}
+    vector<pair<pair<int, string>, string>> I_TYPE = {
+        {{0b000, "0010011"}, "addi"},
+        {{0b111, "0010011"}, "andi"},
+        {{0b110, "0010011"}, "ori"},
+        {{0b100, "0010011"}, "xori"},
+        {{0b001, "0010011"}, "slli"},
+        {{0b101, "0010011"}, "srli"},
+        {{0b000, "1100111"}, "jalr"}  // Added JALR instruction
     };
 
     std::uniform_int_distribution<int> pick(0, (int)I_TYPE.size() - 1);
     int id = pick(rng);
-    int funct3 = I_TYPE[id].first;
+    int funct3 = I_TYPE[id].first.first;
+    string opcode = I_TYPE[id].first.second;
     string instr_name = I_TYPE[id].second;
 
     if (instr_name == "slli" || instr_name == "srli") {
         // shift amount is 0..31
         std::uniform_int_distribution<int> sh(0, 31);
         int shamt = sh(rng);
-        string binary = bitset<7>(0).to_string() + // funct7 for shifts is normally 0
-                        bitset<5>(shamt).to_string() +
-                        bitset<5>(rs1).to_string() +
-                        bitset<3>(funct3).to_string() +
-                        bitset<5>(rd).to_string() +
-                        "0010011";
+        string binary = bitset<7>(0).to_string() +
+                       bitset<5>(shamt).to_string() +
+                       bitset<5>(rs1).to_string() +
+                       bitset<3>(funct3).to_string() +
+                       bitset<5>(rd).to_string() +
+                       opcode;
         string assembly = instr_name + " x" + to_string(rd) + ", x" + to_string(rs1) + ", " + to_string(shamt);
         return {binary, assembly};
     }
 
-    // For regular I-type (including lw/jalr if selected in future), encode immediate as 12-bit two's complement
+    // For regular I-type and jalr
     uint32_t imm_u = static_cast<uint32_t>(imm) & 0xFFFu;
     string binary = bitset<12>(imm_u).to_string() +
                    bitset<5>(rs1).to_string() +
                    bitset<3>(funct3).to_string() +
                    bitset<5>(rd).to_string() +
-                   "0010011";  // I-type opcode (for ALU immediates)
+                   opcode;
 
-    string assembly = instr_name + " x" + to_string(rd) + ", x" +
-                     to_string(rs1) + ", " + to_string(imm);
+    string assembly;
+    if (instr_name == "jalr") {
+        assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm) + "(x" + to_string(rs1) + ")";
+    } else {
+        assembly = instr_name + " x" + to_string(rd) + ", x" + to_string(rs1) + ", " + to_string(imm);
+    }
 
     return {binary, assembly};
 }
@@ -188,44 +194,43 @@ pair<string,string> Generator::generateB() {
 pair<string,string> Generator::generateU() {
     std::uniform_int_distribution<int> regDist(0, 31);
     int rd = regDist(rng);
-    std::uniform_int_distribution<int> immDist(0, (1 << 20) - 1);
-    int imm = immDist(rng);
 
-    vector<pair<string, string>> U_TYPE = {
-        {"0110111", "lui"},
-        {"0010111", "auipc"}
-    };
+    //Generate immediate (-524288 to 524287)
+std::uniform_int_distribution<int> immDist(-524288, 524287);    int imm = immDist(rng);
 
-    std::uniform_int_distribution<int> pick(0, (int)U_TYPE.size() - 1);
-    int id = pick(rng);
-    string opcode = U_TYPE[id].first;
-    string instr_name = U_TYPE[id].second;
+    //selection between LUI and AUIPC
+    bool isLui = rng() % 2 == 0;
+    string opcode = isLui ? "0110111" : "0010111";
+    string name = isLui ? "lui" : "auipc";
 
-    string binary = bitset<20>(static_cast<uint32_t>(imm)).to_string() +
+    // Format binary (20 bits immediate, maintain sign)
+    string binary = bitset<20>(imm & 0xFFFFF).to_string() +
                    bitset<5>(rd).to_string() +
                    opcode;
 
-    string assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm << 12);
+    // Format assembly showing signed immediate
+    string assembly = name + " x" + to_string(rd) + ", " + to_string(imm);
 
     return {binary, assembly};
 }
-
 pair<string,string> Generator::generateJ() {
     std::uniform_int_distribution<int> regDist(0, 31);
     int rd = regDist(rng);
-    // generate signed 20-bit immediate (range -524288 .. 524287)
-    std::uniform_int_distribution<int> kDist(-(1<<19), (1<<19) - 1);
-    int k = kDist(rng);
-    int imm = k * 1; // treat as 20-bit payload, will mask into fields
-    uint32_t imm20 = static_cast<uint32_t>(imm) & 0xFFFFFu; // 20 bits
-    uint32_t imm21 = imm20; // keep as 20-bit for field extraction
 
-    string instr_name = "jal";  // Only JAL for J-format
+    // Generate signed 20-bit immediate (range -524288 .. 524287)
+    std::uniform_int_distribution<int> immDist(-524288, 524287);
+    int imm = immDist(rng);
 
-    uint32_t imm_20 = (imm21 >> 19) & 0x1u; // top sign bit of our 20-bit value
-    uint32_t imm_19_12 = (imm21 >> 11) & 0xFFu;
-    uint32_t imm_11 = (imm21 >> 10) & 0x1u;
-    uint32_t imm_10_1 = (imm21) & 0x3FFu;
+    // The immediate represents bits [20:1] of the offset (bit 0 is implicit 0)
+    uint32_t offset = static_cast<uint32_t>(imm << 1); // Shift to get actual offset
+
+    string instr_name = "jal";
+
+    // Extract fields from the offset
+    uint32_t imm_20 = (offset >> 20) & 0x1u;        // bit 20
+    uint32_t imm_19_12 = (offset >> 12) & 0xFFu;    // bits 19:12
+    uint32_t imm_11 = (offset >> 11) & 0x1u;        // bit 11
+    uint32_t imm_10_1 = (offset >> 1) & 0x3FFu;     // bits 10:1
 
     // Build binary in J-format field order: imm[20] imm[10:1] imm[11] imm[19:12] rd opcode
     string binary = to_string(imm_20) +
@@ -233,13 +238,12 @@ pair<string,string> Generator::generateJ() {
                    to_string(imm_11) +
                    bitset<8>(imm_19_12).to_string() +
                    bitset<5>(rd).to_string() +
-                   "1101111";  // J-type opcode
+                   "1101111";
 
-    string assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm);
+    string assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm << 1);
 
     return {binary, assembly};
 }
-
 
 
 void Generator::Start() {
@@ -254,6 +258,6 @@ void Generator::Start() {
             case 'J': instr = generateJ(); break;
             default: instr = generateR(); break;
         }
-        cout << instr.first << "    // " << instr.second << endl;
+        cout << "Mem[" << i << "] = " << instr.first << "    // " << instr.second << endl; //formated for vivado
     }
 }

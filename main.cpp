@@ -2,7 +2,9 @@
 #include "Generator.h"
 
 int main() {
-    // Generate and print 10 random R-format RV32I instructions
+    // I is for RV32I, 10 is number of instructions, 'I' is format
+    //possible formats: R, I, S, B, U, J
+    //will add C later
     Generator gen('I', 10, 'I');
     gen.Start();
     return 0;
