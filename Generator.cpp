@@ -273,6 +273,6 @@ void Generator::StartMixed() {
             case 'J': instr = generateJ(); break;
             default: instr = generateR(); break;
         }
-        cout << "Mem[" << i << "] = " << instr.first << "    // " << instr.second << endl; //formated for vivado
+        cout << "Mem[" << i << "] = 1'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
     }
 }
