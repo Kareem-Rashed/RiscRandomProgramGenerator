@@ -1,0 +1,39 @@
+//
+// Created by Kareem Rashed on 07/11/2025.
+//
+
+#ifndef GENERATOR_H
+#define GENERATOR_H
+#include <string>
+#include <utility>
+#include <random>
+#include <vector>
+
+using namespace std;
+
+
+class Generator {
+private:
+    char type;   //RV32 I or C
+    int NumofInstructions;
+    char Format; //R, I, S, B, U, J
+
+
+
+    // per-format generators: return {binary, assembly}
+    pair<string,string> generateR();
+    pair<string,string> generateI();
+    pair<string,string> generateS();
+    pair<string,string> generateB();
+    pair<string,string> generateU();
+    pair<string,string> generateJ();
+
+
+public:
+    Generator(char type, int NumofInstructions, char Format);
+    void Start();
+
+};
+
+
+#endif //GENERATOR_H
