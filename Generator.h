@@ -18,15 +18,16 @@ private:
     int NumofInstructions;
     char Format; //R, I, S, B, U, J
 
+    // random number generator thats better than rand() and we can use it to get negatives
+    std::mt19937 rng;
 
-
-    // per-format generators: return {binary, assembly}
     pair<string,string> generateR();
     pair<string,string> generateI();
     pair<string,string> generateS();
     pair<string,string> generateB();
     pair<string,string> generateU();
     pair<string,string> generateJ();
+
 
 
 public:

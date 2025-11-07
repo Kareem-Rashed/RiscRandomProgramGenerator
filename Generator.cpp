@@ -4,16 +4,24 @@
 
 #include "Generator.h"
 #include <iostream>
+#include <bitset>
+
+using namespace std;
 
 Generator::Generator(char type, int NumofInstructions, char Format)
-: type(type), NumofInstructions(NumofInstructions), Format(Format) {}
+    : type(type), NumofInstructions(NumofInstructions), Format(Format) {
+    std::random_device rd;
+    rng.seed(rd());
+}
 
 pair<string,string> Generator::generateR() {
-    // Select random registers and function bits
-    int rd = rand() % 32;     // Random register 0-31
-    int rs1 = rand() % 32;    // Random register 0-31
-    int rs2 = rand() % 32;    // Random register 0-31
-    int funct3 = rand() % 8;      // Random funct3 0-7
+    // Select random registers and function bits using rng
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rd = regDist(rng);
+    int rs1 = regDist(rng);
+    int rs2 = regDist(rng);
+    std::uniform_int_distribution<int> funcDist(0, 7);
+    int funct3 = funcDist(rng) & 0x7;
 
     // R-format: common R-type instructions
     vector<pair<int, string>> FUNC7 = {
@@ -27,14 +35,14 @@ pair<string,string> Generator::generateR() {
         {0b0100000, "sra"}
     };
 
-    // Select random instruction
-    int id = rand() % FUNC7.size();
+    std::uniform_int_distribution<int> pick(0, (int)FUNC7.size() - 1);
+    int id = pick(rng);
     int funct7 = FUNC7[id].first;
     string instr_name = FUNC7[id].second;
 
     // Create binary string (R-format: funct7 | rs2 | rs1 | funct3 | rd | opcode)
     string binary =
-        to_string(funct7) +
+        bitset<7>(funct7).to_string() +
         bitset<5>(rs2).to_string() +
         bitset<5>(rs1).to_string() +
         bitset<3>(funct3).to_string() +
@@ -49,12 +57,13 @@ pair<string,string> Generator::generateR() {
 }
 
 
-
-
 pair<string,string> Generator::generateI() {
-    int rd = rand() % 32;    // Destination register
-    int rs1 = rand() % 32;   // Source register
-    int imm = rand() % 4096; // 12-bit immediate
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rd = regDist(rng);
+    int rs1 = regDist(rng);
+    // signed 12-bit immediate: -2048..2047
+    std::uniform_int_distribution<int> immDist(-2048, 2047);
+    int imm = immDist(rng);
 
     vector<pair<int, string>> I_TYPE = {
         {0b000, "addi"},
@@ -65,15 +74,32 @@ pair<string,string> Generator::generateI() {
         {0b101, "srli"}
     };
 
-    int id = rand() % I_TYPE.size();
+    std::uniform_int_distribution<int> pick(0, (int)I_TYPE.size() - 1);
+    int id = pick(rng);
     int funct3 = I_TYPE[id].first;
     string instr_name = I_TYPE[id].second;
 
-    string binary = bitset<12>(imm).to_string() +
+    if (instr_name == "slli" || instr_name == "srli") {
+        // shift amount is 0..31
+        std::uniform_int_distribution<int> sh(0, 31);
+        int shamt = sh(rng);
+        string binary = bitset<7>(0).to_string() + // funct7 for shifts is normally 0
+                        bitset<5>(shamt).to_string() +
+                        bitset<5>(rs1).to_string() +
+                        bitset<3>(funct3).to_string() +
+                        bitset<5>(rd).to_string() +
+                        "0010011";
+        string assembly = instr_name + " x" + to_string(rd) + ", x" + to_string(rs1) + ", " + to_string(shamt);
+        return {binary, assembly};
+    }
+
+    // For regular I-type (including lw/jalr if selected in future), encode immediate as 12-bit two's complement
+    uint32_t imm_u = static_cast<uint32_t>(imm) & 0xFFFu;
+    string binary = bitset<12>(imm_u).to_string() +
                    bitset<5>(rs1).to_string() +
                    bitset<3>(funct3).to_string() +
                    bitset<5>(rd).to_string() +
-                   "0010011";  // I-type opcode
+                   "0010011";  // I-type opcode (for ALU immediates)
 
     string assembly = instr_name + " x" + to_string(rd) + ", x" +
                      to_string(rs1) + ", " + to_string(imm);
@@ -82,9 +108,13 @@ pair<string,string> Generator::generateI() {
 }
 
 pair<string,string> Generator::generateS() {
-    int rs1 = rand() % 32;    // Base register
-    int rs2 = rand() % 32;    // Source register
-    int imm = rand() % 4096;  // 12-bit immediate
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rs1 = regDist(rng);
+    int rs2 = regDist(rng);
+    // signed 12-bit immediate
+    std::uniform_int_distribution<int> immDist(-2048, 2047);
+    int imm = immDist(rng);
+    uint32_t imm12 = static_cast<uint32_t>(imm) & 0xFFFu;
 
     vector<pair<int, string>> S_TYPE = {
         {0b000, "sb"},
@@ -92,12 +122,13 @@ pair<string,string> Generator::generateS() {
         {0b010, "sw"}
     };
 
-    int id = rand() % S_TYPE.size();
+    std::uniform_int_distribution<int> pick(0, (int)S_TYPE.size() - 1);
+    int id = pick(rng);
     int funct3 = S_TYPE[id].first;
     string instr_name = S_TYPE[id].second;
 
-    string imm_11_5 = bitset<7>(imm >> 5).to_string();
-    string imm_4_0 = bitset<5>(imm & 0x1F).to_string();
+    string imm_11_5 = bitset<7>((imm12 >> 5) & 0x7F).to_string();
+    string imm_4_0 = bitset<5>(imm12 & 0x1F).to_string();
 
     string binary = imm_11_5 +
                    bitset<5>(rs2).to_string() +
@@ -106,16 +137,20 @@ pair<string,string> Generator::generateS() {
                    imm_4_0 +
                    "0100011";  // S-type opcode
 
-    string assembly = instr_name + " x" + to_string(rs2) + ", " +
-                     to_string(imm) + "(x" + to_string(rs1) + ")";
+    string assembly = instr_name + " x" + to_string(rs2) + ", " + to_string(imm) + "(x" + to_string(rs1) + ")";
 
     return {binary, assembly};
 }
 
 pair<string,string> Generator::generateB() {
-    int rs1 = rand() % 32;     // First source register
-    int rs2 = rand() % 32;     // Second source register
-    int imm = (rand() % 4096) * 2;  // 13-bit immediate (multiple of 2)
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rs1 = regDist(rng);
+    int rs2 = regDist(rng);
+    // branch offset is 13 bits (imm/2 typically); generate k in -2048..2047 then imm = k*2
+    std::uniform_int_distribution<int> kDist(-2048, 2047);
+    int k = kDist(rng);
+    int imm = k * 2;
+    uint32_t imm13 = static_cast<uint32_t>(imm) & 0x1FFFu;
 
     vector<pair<int, string>> B_TYPE = {
         {0b000, "beq"},
@@ -126,14 +161,15 @@ pair<string,string> Generator::generateB() {
         {0b111, "bgeu"}
     };
 
-    int id = rand() % B_TYPE.size();
+    std::uniform_int_distribution<int> pick(0, (int)B_TYPE.size() - 1);
+    int id = pick(rng);
     int funct3 = B_TYPE[id].first;
     string instr_name = B_TYPE[id].second;
 
-    int imm_12 = (imm >> 12) & 0x1;
-    int imm_11 = (imm >> 11) & 0x1;
-    int imm_10_5 = (imm >> 5) & 0x3F;
-    int imm_4_1 = (imm >> 1) & 0xF;
+    uint32_t imm_12 = (imm13 >> 12) & 0x1u;
+    uint32_t imm_11 = (imm13 >> 11) & 0x1u;
+    uint32_t imm_10_5 = (imm13 >> 5) & 0x3Fu;
+    uint32_t imm_4_1 = (imm13 >> 1) & 0xFu;
 
     string binary = to_string(imm_12) +
                    bitset<6>(imm_10_5).to_string() +
@@ -144,46 +180,54 @@ pair<string,string> Generator::generateB() {
                    to_string(imm_11) +
                    "1100011";  // B-type opcode
 
-    string assembly = instr_name + " x" + to_string(rs1) + ", x" +
-                     to_string(rs2) + ", " + to_string(imm);
+    string assembly = instr_name + " x" + to_string(rs1) + ", x" + to_string(rs2) + ", " + to_string(imm);
 
     return {binary, assembly};
 }
 
 pair<string,string> Generator::generateU() {
-    int rd = rand() % 32;      // Destination register
-    int imm = rand() % (1 << 20);  // 20-bit immediate
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rd = regDist(rng);
+    std::uniform_int_distribution<int> immDist(0, (1 << 20) - 1);
+    int imm = immDist(rng);
 
     vector<pair<string, string>> U_TYPE = {
         {"0110111", "lui"},
         {"0010111", "auipc"}
     };
 
-    int id = rand() % U_TYPE.size();
+    std::uniform_int_distribution<int> pick(0, (int)U_TYPE.size() - 1);
+    int id = pick(rng);
     string opcode = U_TYPE[id].first;
     string instr_name = U_TYPE[id].second;
 
-    string binary = bitset<20>(imm).to_string() +
+    string binary = bitset<20>(static_cast<uint32_t>(imm)).to_string() +
                    bitset<5>(rd).to_string() +
                    opcode;
 
-    string assembly = instr_name + " x" + to_string(rd) + ", " +
-                     to_string(imm);
+    string assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm << 12);
 
     return {binary, assembly};
 }
 
 pair<string,string> Generator::generateJ() {
-    int rd = rand() % 32;      // Destination register
-    int imm = (rand() % (1 << 20)) * 2;  // 21-bit immediate (multiple of 2)
+    std::uniform_int_distribution<int> regDist(0, 31);
+    int rd = regDist(rng);
+    // generate signed 20-bit immediate (range -524288 .. 524287)
+    std::uniform_int_distribution<int> kDist(-(1<<19), (1<<19) - 1);
+    int k = kDist(rng);
+    int imm = k * 1; // treat as 20-bit payload, will mask into fields
+    uint32_t imm20 = static_cast<uint32_t>(imm) & 0xFFFFFu; // 20 bits
+    uint32_t imm21 = imm20; // keep as 20-bit for field extraction
 
     string instr_name = "jal";  // Only JAL for J-format
 
-    int imm_20 = (imm >> 20) & 0x1;
-    int imm_19_12 = (imm >> 12) & 0xFF;
-    int imm_11 = (imm >> 11) & 0x1;
-    int imm_10_1 = (imm >> 1) & 0x3FF;
+    uint32_t imm_20 = (imm21 >> 19) & 0x1u; // top sign bit of our 20-bit value
+    uint32_t imm_19_12 = (imm21 >> 11) & 0xFFu;
+    uint32_t imm_11 = (imm21 >> 10) & 0x1u;
+    uint32_t imm_10_1 = (imm21) & 0x3FFu;
 
+    // Build binary in J-format field order: imm[20] imm[10:1] imm[11] imm[19:12] rd opcode
     string binary = to_string(imm_20) +
                    bitset<10>(imm_10_1).to_string() +
                    to_string(imm_11) +
@@ -191,8 +235,25 @@ pair<string,string> Generator::generateJ() {
                    bitset<5>(rd).to_string() +
                    "1101111";  // J-type opcode
 
-    string assembly = instr_name + " x" + to_string(rd) + ", " +
-                     to_string(imm);
+    string assembly = instr_name + " x" + to_string(rd) + ", " + to_string(imm);
 
     return {binary, assembly};
+}
+
+
+
+void Generator::Start() {
+    for (int i = 0; i < NumofInstructions; ++i) {
+        pair<string,string> instr;
+        switch (Format) {
+            case 'R': instr = generateR(); break;
+            case 'I': instr = generateI(); break;
+            case 'S': instr = generateS(); break;
+            case 'B': instr = generateB(); break;
+            case 'U': instr = generateU(); break;
+            case 'J': instr = generateJ(); break;
+            default: instr = generateR(); break;
+        }
+        cout << instr.first << "    // " << instr.second << endl;
+    }
 }
