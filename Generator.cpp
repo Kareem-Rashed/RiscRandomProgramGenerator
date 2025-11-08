@@ -245,7 +245,24 @@ pair<string,string> Generator::generateJ() {
 
     return {binary, assembly};
 }
+pair<string,string> Generator::generateSYS() {
+    string instr_name1 = "ECALL";
+    string intsr_binary1 = "00000000000000000000000001110011";
+    string instr_name2 = "EBREAK";
+    string instr_binary2 = "00000000000100000000000001110011";
+    string instr_name3 = "FENCE";
+    string instr_binary3 = "00000011001100000000000000001111";
+    string instr_name4 = "PAUSE";
+    string instr_binary4 = "00000011001100000000000000001111";
+    string instr_name5 = "FENCE.TSO";
+    string instr_binary5 = "10000011001100000000000000001111";
+    vector <pair<string,string>> sys_instructions = {{instr_name1,intsr_binary1}, {instr_name2,instr_binary2},{ instr_name3,instr_binary3}, {instr_name4,instr_binary4}, {instr_name5,instr_binary5}};
+    std::uniform_int_distribution<int> pick(0, (int)sys_instructions.size() - 1);
+    int id = pick(rng);
+    pair <string,string> selected_instr = sys_instructions[id];
 
+return {selected_instr.second, selected_instr.first};
+}
 
 void Generator::Start() {
     for (int i = 0; i < NumofInstructions; ++i) {
@@ -257,14 +274,15 @@ void Generator::Start() {
             case 'B': instr = generateB(); break;
             case 'U': instr = generateU(); break;
             case 'J': instr = generateJ(); break;
+            case 'Y': instr = generateSYS(); break;
             default: instr = generateR(); break;
         }
-        cout << "Mem[" << i << "] = " << instr.first << "    // " << instr.second << endl; //formated for vivado
+        cout << "mem[" << i << "] = " << "32'b"<<instr.first << "    // " << instr.second << endl; //formated for vivado
     }
 }
 
 void Generator::StartMixed() {
-    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J'};
+    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
     std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
 
     for (int i = 0; i < NumofInstructions; ++i) {
@@ -277,8 +295,9 @@ void Generator::StartMixed() {
             case 'B': instr = generateB(); break;
             case 'U': instr = generateU(); break;
             case 'J': instr = generateJ(); break;
+            case 'Y': instr = generateSYS(); break;
             default: instr = generateR(); break;
         }
-        cout << "Mem[" << i << "] =  1'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
+        cout << "mem[" << i << "] =  32'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
     }
 }

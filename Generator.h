@@ -16,7 +16,7 @@ class Generator {
 private:
     char type;   //RV32 I or C
     int NumofInstructions;
-    char Format; //R, I, S, B, U, J
+    char Format; //R, I, S, B, U, J , Y for SYS (ECALL, EBREAK, FENCE, FENCE.TSO, PAUSE)
 
     // random number generator thats better than rand() and we can use it to get negatives
     std::mt19937 rng;
@@ -27,7 +27,7 @@ private:
     pair<string,string> generateB();
     pair<string,string> generateU();
     pair<string,string> generateJ();
-
+    pair<string,string>generateSYS();
 
 
 public:

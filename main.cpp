@@ -10,6 +10,6 @@ int main() {
 
     //gen.Start();  //for single format  (change from constructor)
 
-    gen.Start();  //for mixed formats
+    gen.StartMixed();  //for mixed formats
     return 0;
 }
