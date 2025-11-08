@@ -1,21 +1,57 @@
-🧠 RISC-V Instruction Generator
+# 🧠 RISC-V Instruction Generator
 
-This C++ project randomly generates RISC-V (RV32I) machine code and its corresponding assembly representation.
-It supports all six base instruction formats — R, I, S, B, U, J — and can produce either single-format or mixed-format instruction sets.
+A **C++ project** that randomly generates **RISC-V (RV32I)** machine code along with its corresponding **assembly representation**.  
+It supports all six base **instruction formats** — **R, I, S, B, U, and J** — and can produce either **single-format** or **mixed-format** instruction sets.
 
-Designed for use in simulation tools like Vivado or Logisim, this generator outputs memory-formatted code (e.g., Mem[0] = ...) ready for direct loading into instruction memory arrays.
+Designed for use in **simulation tools** such as **Vivado** or **Logisim**, this generator outputs **memory-formatted code** (e.g., `Mem[0] = ...`) ready for direct loading into instruction memory arrays.
 
-⸻
+---
 
-🚀 Features
-	•	✅ Supports all RV32I base instruction formats:
-	•	R-type (e.g., add, sub, and, or, xor, sll, srl, sra)
-	•	I-type (e.g., addi, andi, ori, xori, slli, srli, jalr)
-	•	S-type (e.g., sb, sh, sw)
-	•	B-type (e.g., beq, bne, blt, bge, bltu, bgeu)
-	•	U-type (lui, auipc)
-	•	J-type (jal)
-	•	🔀 Mixed-format generation option (randomly picks among formats per instruction)
-	•	💾 Vivado-friendly output (e.g., Mem[i] = binary // assembly)
-	•	🧩 Clean, modular design — each format has its own generator function
-	•	🌍 Easily extensible for RV32C (Compressed) or custom instruction sets
+## 🚀 Features
+
+### 🧩 Full RV32I Format Support
+#### **R-type Instructions**
+`add`, `sub`, `sll`, `slt`, `sltu`, `xor`, `srl`, `sra`, `or`, `and`
+
+#### **I-type Instructions**
+`addi`, `slti`, `sltiu`, `xori`, `ori`, `andi`,  
+`lb`, `lh`, `lw`, `lbu`, `lhu`,  
+`slli`, `srli`, `srai`,  
+`jalr`
+
+#### **S-type Instructions**
+`sb`, `sh`, `sw`
+
+#### **B-type Instructions**
+`beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`
+
+#### **U-type Instructions**
+`lui`, `auipc`
+
+#### **J-type Instructions**
+`jal`
+
+#### **SYS-type Instructions**
+`ecall`, `ebreak`, `fence`, `fence.tso`, `pause`
+
+---
+
+
+### 🎲 Generation Modes
+- **Single-format mode** – generate instructions of one chosen format  
+- **Mixed-format mode** – randomly choose among all formats per instruction  
+
+### 💾 Output
+- **Vivado-friendly format:**
+  ```verilog
+  mem[0] = 32'b00000000000100000000000010010011; // addi x1, x0, 1
+### ⚙️ Future Improvments
+
+- 🧠 Add RV32C compressed instruction support
+
+- 💻 Add CLI options for:
+
+-  Output format (binary, hex, verilog)
+
+
+  
