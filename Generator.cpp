@@ -12,6 +12,7 @@ Generator::Generator(char type, int NumofInstructions, char Format)
     : type(type), NumofInstructions(NumofInstructions), Format(Format) {
     std::random_device rd;
     rng.seed(rd());
+
 }
 
 pair<string,string> Generator::generateR() {
@@ -301,7 +302,29 @@ void Generator::StartMixed() {
         cout << "mem[" << i << "] =  32'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
     }
 }
+void Generator::GenerateSet()
+{
+    generatedInstructions.clear();
+    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
+    std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
 
+    for (int i = 0; i < NumofInstructions; ++i)
+    {
+        char format = formats[pick(rng)];
+        pair<string,string> instr;
+        switch (format) {
+        case 'R': instr = generateR(); break;
+        case 'I': instr = generateI(); break;
+        case 'S': instr = generateS(); break;
+        case 'B': instr = generateB(); break;
+        case 'U': instr = generateU(); break;
+        case 'J': instr = generateJ(); break;
+        case 'Y': instr = generateSYS(); break;
+        default: instr = generateR(); break;
+        }
+        generatedInstructions.push_back(instr);
+    }
+}
 
 void Generator::GenerateTCFiles() {
 
@@ -309,26 +332,16 @@ ofstream ofs("TC.txt");
 
 
     if (ofs.is_open()) {
-        cout<<"Opened";
+        cout<<"Opened TC.txt";
     }
 
     vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
     std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
 
-    for (int i = 0; i < NumofInstructions; ++i) {
-        char format = formats[pick(rng)];
-        pair<string,string> instr;
-        switch (format) {
-            case 'R': instr = generateR(); break;
-            case 'I': instr = generateI(); break;
-            case 'S': instr = generateS(); break;
-            case 'B': instr = generateB(); break;
-            case 'U': instr = generateU(); break;
-            case 'J': instr = generateJ(); break;
-            case 'Y': instr = generateSYS(); break;
-            default: instr = generateR(); break;
-        }
-        ofs << "mem[" << i << "] =  32'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
+    for (int i = 0; i < generatedInstructions.size(); ++i) {
+        ofs << "mem[" << i << "] = 32'b"
+            << generatedInstructions[i].first << "; // "
+            << generatedInstructions[i].second << endl;
     }
 
     ofs.close();
@@ -342,28 +355,12 @@ void Generator::GenerateMem() {
 
 
     if (ofs.is_open()) {
-        cout<<"Opened";
+        cout<<"Opened Mem.txt";
     }
 
-    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
-    std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
-
-    for (int i = 0; i < NumofInstructions; ++i) {
-        char format = formats[pick(rng)];
-        pair<string,string> instr;
-        switch (format) {
-            case 'R': instr = generateR(); break;
-            case 'I': instr = generateI(); break;
-            case 'S': instr = generateS(); break;
-            case 'B': instr = generateB(); break;
-            case 'U': instr = generateU(); break;
-            case 'J': instr = generateJ(); break;
-            case 'Y': instr = generateSYS(); break;
-            default: instr = generateR(); break;
-        }
-        ofs << instr.first << endl; //formated for vivado
+    for (int i = 0; i < generatedInstructions.size(); ++i) {
+        ofs << generatedInstructions[i].first << endl;
     }
-
     ofs.close();
 
 }

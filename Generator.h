@@ -18,7 +18,7 @@ private:
     char type;   //RV32 I or C
     int NumofInstructions;
     char Format; //R, I, S, B, U, J , Y for SYS (ECALL, EBREAK, FENCE, FENCE.TSO, PAUSE)
-
+vector <pair<string,string>> generatedInstructions; //to store generated instructions for test case files/
     // random number generator thats better than rand() and we can use it to get negatives
     std::mt19937 rng;
 
@@ -31,12 +31,14 @@ private:
     pair<string,string>generateSYS();
 
 
+
 public:
     Generator(char type, int NumofInstructions, char Format);
     void Start();
     void StartMixed();
     void GenerateTCFiles();
     void GenerateMem(); //for vivado
+    void GenerateSet(); // to make consistent output for Mem and TCFiles.
 
 };
 

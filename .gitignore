@@ -3,3 +3,6 @@
 /CMakeLists.txt
 /cmake-build-debug
 *.xml
+/.idea
+*.xml
+/.idea
