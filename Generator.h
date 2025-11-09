@@ -38,8 +38,10 @@ public:
     void StartMixed();
     void GenerateTCFiles();
     void GenerateMem(); //for vivado
-    void GenerateSet(); // to make consistent output for Mem and TCFiles.
-
+    void GenerateMixedSet(); // to make consistent output for Mem and TCFiles.
+    void GenerateAllJType();
+    void GenerateAllRType();
+    void GenerateAllUType();
 };
 
 

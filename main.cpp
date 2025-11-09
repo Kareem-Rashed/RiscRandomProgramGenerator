@@ -17,7 +17,7 @@ int main() {
 
 
     //gen.Start();  //for single format  (change from constructor)
-    gen.GenerateSet();//for mixed formats
+    gen.GenerateAllJType();//for mixed formats
 gen.GenerateTCFiles();//for test case file
     gen.GenerateMem();//for mixed formats
     return 0;

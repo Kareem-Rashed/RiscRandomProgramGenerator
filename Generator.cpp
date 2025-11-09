@@ -302,13 +302,18 @@ void Generator::StartMixed() {
         cout << "mem[" << i << "] =  32'b" << instr.first << ";    // " << instr.second << endl; //formated for vivado
     }
 }
-void Generator::GenerateSet()
+
+
+
+
+
+void Generator::GenerateMixedSet()
 {
     generatedInstructions.clear();
-    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
+    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J'};
     std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
 
-    for (int i = 0; i < NumofInstructions; ++i)
+    for (int i = 0; i < NumofInstructions-1; ++i)
     {
         char format = formats[pick(rng)];
         pair<string,string> instr;
@@ -319,11 +324,13 @@ void Generator::GenerateSet()
         case 'B': instr = generateB(); break;
         case 'U': instr = generateU(); break;
         case 'J': instr = generateJ(); break;
-        case 'Y': instr = generateSYS(); break;
         default: instr = generateR(); break;
         }
         generatedInstructions.push_back(instr);
     }
+
+    pair<string, string> sysInstr = generateSYS(); // Ensure  one SYS instruction at the end
+    generatedInstructions.push_back(sysInstr);
 }
 
 void Generator::GenerateTCFiles() {
@@ -364,3 +371,98 @@ void Generator::GenerateMem() {
     ofs.close();
 
 }
+
+
+void Generator::GenerateAllRType() {
+    generatedInstructions.clear();
+
+    struct RTypeSpec {
+        string name;
+        string funct7;
+        string funct3;
+        string opcode;
+    };
+
+    vector<RTypeSpec> r_instructions = {
+        {"add", "0000000", "000", "0110011"},
+        {"sub", "0100000", "000", "0110011"},
+        {"sll", "0000000", "001", "0110011"},
+        {"slt", "0000000", "010", "0110011"},
+        {"sltu","0000000", "011", "0110011"},
+        {"xor", "0000000", "100", "0110011"},
+        {"srl", "0000000", "101", "0110011"},
+        {"sra", "0100000", "101", "0110011"},
+        {"or",  "0000000", "110", "0110011"},
+        {"and", "0000000", "111", "0110011"},
+    };
+
+    for (auto &r : r_instructions) {
+        // dummy values for rd, rs1, rs2
+        string rd = "00001";   // x1
+        string rs1 = "00010";  // x2
+        string rs2 = "00011";  // x3
+
+        //           funct7 | rs2 | rs1 | funct3 | rd | opcode
+        string bin = r.funct7 + rs2 + rs1 + r.funct3 + rd + r.opcode;
+
+        string asmString = r.name + " x1, x2, x3";
+        generatedInstructions.push_back({bin, asmString});
+    }
+
+
+    generatedInstructions.push_back(generateSYS());
+}
+
+void Generator::GenerateAllUType() {
+    generatedInstructions.clear();
+
+    struct USpec {
+        string name;
+        string opcode;
+    };
+
+    vector<USpec> u_instructions = {
+        {"lui",   "0110111"},
+        {"auipc", "0010111"}
+    };
+
+    string rd = "00001";  // x1
+    string imm = "00000000000000000001";  // imm = 1
+
+    for (auto &u : u_instructions) {
+                  // imm[31:12] + rd + opcode
+        string bin = imm + rd + u.opcode;
+        string asmcode = u.name + " x1, 0x1";
+        generatedInstructions.push_back({bin, asmcode});
+    }
+
+
+    generatedInstructions.push_back(generateSYS());
+}
+void Generator::GenerateAllJType() {
+    generatedInstructions.clear();
+
+    struct JSpec {
+        string name;
+        string opcode;
+    };
+
+    vector<JSpec> j_instructions = {
+        {"jal", "1101111"}
+    };
+
+    string rd = "00001";  // x1
+                // imm[20|10:1|11|19:12]
+    string imm = "00000000000100000000"; // a small positive jump offset (just a pattern)
+
+    for (auto &j : j_instructions) {
+        // Build J-type layout: imm[20|10:1|11|19:12] + rd + opcode
+        string bin = imm + rd + j.opcode;
+        string asmcode = j.name + " x1, 4";
+        generatedInstructions.push_back({bin, asmcode});
+    }
+
+
+    generatedInstructions.push_back(generateSYS());
+}
+
