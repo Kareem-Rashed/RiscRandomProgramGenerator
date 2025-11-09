@@ -8,6 +8,7 @@
 #include <utility>
 #include <random>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -34,6 +35,8 @@ public:
     Generator(char type, int NumofInstructions, char Format);
     void Start();
     void StartMixed();
+    void GenerateTCFiles();
+    void GenerateMem(); //for vivado
 
 };
 
