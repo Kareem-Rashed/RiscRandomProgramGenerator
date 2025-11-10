@@ -42,6 +42,9 @@ public:
     void GenerateAllJType();
     void GenerateAllRType();
     void GenerateAllUType();
+    void GenerateAllIType();
+    void GenerateAllBType();
+    void GenerateAllSType();
 };
 
 

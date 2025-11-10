@@ -334,16 +334,12 @@ void Generator::GenerateMixedSet()
 }
 
 void Generator::GenerateTCFiles() {
-
-ofstream ofs("TC.txt");
-
+    string filename = "../TestCases/TC-" + string(1, Format) + ".txt";
+    ofstream ofs(filename);
 
     if (ofs.is_open()) {
-        cout<<"Opened TC.txt";
+        cout << "Opened " << filename << endl;
     }
-
-    vector<char> formats = {'R', 'I', 'S', 'B', 'U', 'J', 'Y'};
-    std::uniform_int_distribution<int> pick(0, (int)formats.size() - 1);
 
     for (int i = 0; i < generatedInstructions.size(); ++i) {
         ofs << "mem[" << i << "] = 32'b"
@@ -357,12 +353,11 @@ ofstream ofs("TC.txt");
 
 
 void Generator::GenerateMem() {
-
-    ofstream ofs("Mem.txt");
-
+    string filename = "../MemData/Mem-" + string(1, Format) + ".txt";
+    ofstream ofs(filename);
 
     if (ofs.is_open()) {
-        cout<<"Opened Mem.txt";
+        cout << "Opened " << filename << endl;
     }
 
     for (int i = 0; i < generatedInstructions.size(); ++i) {
@@ -464,5 +459,110 @@ void Generator::GenerateAllJType() {
 
 
     generatedInstructions.push_back(generateSYS());
+}
+
+
+void Generator::GenerateAllIType() {
+    generatedInstructions.clear();
+    struct ITypeSpec {
+        string name;
+        string funct3;
+        string opcode;
+    };
+    vector<ITypeSpec> i_instructions = {
+        {"addi", "000", "0010011"},
+        {"slti", "010", "0010011"},
+        {"sltiu", "011", "0010011"},
+        {"xori", "100", "0010011"},
+        {"ori", "110", "0010011"},
+        {"andi", "111", "0010011"},
+        {"lb", "000", "0000011"},
+        {"lh", "001", "0000011"},
+        {"lw", "010", "0000011"},
+        {"lbu", "100", "0000011"},
+        {"lhu", "101", "0000011"},
+        {"jalr", "000", "1100111"},
+    };
+
+    string rd = "00001";  // x1
+    string rs1 = "00010"; // x2
+    string imm = "000000000001"; // 12-bit immediate = 1
+
+    for (auto &i : i_instructions) {
+        // I-type: imm[11:0] | rs1[4:0] | funct3[2:0] | rd[4:0] | opcode[6:0]
+        string bin = imm + rs1 + i.funct3 + rd + i.opcode;
+
+        string asmcode;
+        if (i.name == "lb" || i.name == "lh" || i.name == "lw" || i.name == "lbu" || i.name == "lhu" || i.name == "jalr") {
+            // Load/jalr format
+            asmcode = i.name + " x1, 1(x2)";
+        } else {
+            // Immediate format: instr rd, rs1, imm
+            asmcode = i.name + " x1, x2, 1";
+        }
+
+        generatedInstructions.push_back({bin, asmcode});
+    }
+}
+
+void Generator::GenerateAllBType() {
+    generatedInstructions.clear();
+    struct BTypeSpec {
+        string name;
+        string funct3;
+        string opcode;
+    };
+    vector<BTypeSpec> b_instructions = {
+        {"beq", "000", "1100011"},
+        {"bne", "001", "1100011"},
+        {"blt", "100", "1100011"},
+        {"bge", "101", "1100011"},
+        {"bltu", "110", "1100011"},
+        {"bgeu", "111", "1100011"},
+    };
+
+    string rs1 = "00001"; // x1
+    string rs2 = "00010"; // x2
+    string imm = "000000000100"; // 12-bit immediate = 4 (for simplicity, as branches use offsets)
+
+    for (auto &b : b_instructions) {
+        // B-type: imm[12] imm[10:5] rs2 rs1 funct3 imm[4:1] imm[11] opcode
+        string imm_12 = "0";
+        string imm_10_5 = "000000";
+        string imm_4_1 = "0010";
+        string imm_11 = "0";
+        string bin = imm_12 + imm_10_5 + rs2 + rs1 + b.funct3 + imm_4_1 + imm_11 + b.opcode;
+
+        string asmcode = b.name + " x1, x2, 4";
+        generatedInstructions.push_back({bin, asmcode});
+    }
+}
+
+void Generator::GenerateAllSType() {
+    generatedInstructions.clear();
+    struct STypeSpec {
+        string name;
+        string funct3;
+        string opcode;
+    };
+    vector<STypeSpec> s_instructions = {
+        {"sb", "000", "0100011"},
+        {"sh", "001", "0100011"},
+        {"sw", "010", "0100011"},
+    };
+
+    string rs1 = "00001"; // x1
+    string rs2 = "00010"; // x2
+    string imm = "000000000100"; // 12-bit immediate = 4
+
+    for (auto &s : s_instructions) {
+        // S-type: imm[11:5] rs2 rs1 funct3 imm[4:0] opcode
+        string imm_11_5 = "0000000";
+        string imm_4_0 = "00100";
+        string bin = imm_11_5 + rs2 + rs1 + s.funct3 + imm_4_0 + s.opcode;
+
+        string asmcode = s.name + " x2, 4(x1)";
+        generatedInstructions.push_back({bin, asmcode});
+    }
 }
 
