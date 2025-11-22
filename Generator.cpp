@@ -53,6 +53,7 @@ pair<string,string> Generator::generateR() {
 
     return {binary, assembly};
 }
+
 pair<string,string> Generator::generateI() {
     std::uniform_int_distribution<int> regDist(0, 31);
     int rd = regDist(rng);
@@ -266,6 +267,7 @@ return {selected_instr.second, selected_instr.first};
 }
 
 void Generator::Start() {
+
     for (int i = 0; i < NumofInstructions; ++i) {
         pair<string,string> instr;
         switch (Format) {
@@ -429,6 +431,31 @@ void Generator::GenerateAllRType() {
         {"and", "0000000", "111", "0110011"},
     };
 
+    struct ITypeSpec
+    {
+        string name;
+string imm;
+        string rs1;
+        string funct3;
+        string rd;
+        string opcode;
+
+    };
+
+  // To initialize registers used
+    vector<ITypeSpec> StartingInstructions= {
+        {"addi", "000000000011", "00000", "000", "00010","0010011"}, // x2 = 3
+{"addi", "000000000010", "00000", "000", "00011","0010011"}, // x3 = 2
+};
+    for (auto&s : StartingInstructions) {
+
+        string bin = s.imm + s.rs1 + s.funct3 + s.rd + s.opcode;
+
+        string asmcode = s.name + " x" + to_string(stoi(s.rd, nullptr, 2)) + ", x" + to_string(stoi(s.rs1, nullptr, 2)) + ", " + to_string(stoi(s.imm, nullptr, 2));
+        generatedInstructions.push_back({bin, asmcode});
+    }
+
+
     for (auto &r : r_instructions) {
         // dummy values for rd, rs1, rs2
         string rd = "00001";   // x1
@@ -486,12 +513,35 @@ void Generator::GenerateAllJType() {
 
     string rd = "00001";  // x1
                 // imm[20|10:1|11|19:12]
-    string imm = "00000000000100000000"; // a small positive jump offset (just a pattern)
+    string imm = "00000000100000000000"; // imm = 8
+    struct ITypeSpec
+    {
+        string name;
+        string imm;
+        string rs1;
+        string funct3;
+        string rd;
+        string opcode;
+
+    };
+
+    // To be skipped (jumping)
+    vector<ITypeSpec> StartingInstructions= {
+        {"addi", "000000000011", "00000", "000", "00010", "0010011"},
+        {"addi", "000000000010", "00000", "000","00011","0010011"}
+    };
 
     for (auto &j : j_instructions) {
         // Build J-type layout: imm[20|10:1|11|19:12] + rd + opcode
         string bin = imm + rd + j.opcode;
-        string asmcode = j.name + " x1, 4";
+        string asmcode = j.name + " x1, 8";
+        generatedInstructions.push_back({bin, asmcode});
+    }
+    for (auto&s : StartingInstructions) {
+
+        string bin = s.imm + s.rs1 + s.funct3 + s.rd + s.opcode;
+
+        string asmcode = s.name + " x" + to_string(stoi(s.rd, nullptr, 2)) + ", x" + to_string(stoi(s.rs1, nullptr, 2)) + ", " + to_string(stoi(s.imm, nullptr, 2));
         generatedInstructions.push_back({bin, asmcode});
     }
 
@@ -592,6 +642,32 @@ void Generator::GenerateAllSType() {
     string rs1 = "00001"; // x1
     string rs2 = "00010"; // x2
     string imm = "000000000100"; // 12-bit immediate = 4
+
+    struct ITypeSpec
+    {
+        string name;
+        string imm;
+        string rs1;
+        string funct3;
+        string rd;
+        string opcode;
+
+    };
+
+    // To initialize registers used stored large Immediates to see differences in sw, sb, sh
+    vector<ITypeSpec> StartingInstructions= {
+        {"addi", "001000111111", "00000", "000", "00010", "0010011"},
+        {"addi", "000100000010", "00000", "000","00011","0010011"}
+    };
+    for (auto&s : StartingInstructions) {
+
+        string bin = s.imm + s.rs1 + s.funct3 + s.rd + s.opcode;
+
+        string asmcode = s.name + " x" + to_string(stoi(s.rd, nullptr, 2)) + ", x" + to_string(stoi(s.rs1, nullptr, 2)) + ", " + to_string(stoi(s.imm, nullptr, 2));
+        generatedInstructions.push_back({bin, asmcode});
+    }
+
+
 
     for (auto &s : s_instructions) {
         // S-type: imm[11:5] rs2 rs1 funct3 imm[4:0] opcode
