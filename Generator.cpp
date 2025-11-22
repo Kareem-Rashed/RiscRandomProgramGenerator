@@ -334,6 +334,18 @@ void Generator::GenerateMixedSet()
 }
 
 void Generator::GenerateTCFiles() {
+    switch(Format)
+    {
+        case 'R': GenerateAllRType(); break;
+            case 'I': GenerateAllIType(); break;
+            case 'S': GenerateAllSType(); break;
+            case 'B': GenerateAllBType(); break;
+            case 'U': GenerateAllUType(); break;
+            case 'J': GenerateAllJType(); break;
+            case 'M': GenerateMixedSet(); break;
+            default: GenerateAllRType(); break;
+    }
+
     string filename = "../TestCases/TC-" + string(1, Format) + ".txt";
     ofstream ofs(filename);
 
@@ -341,10 +353,23 @@ void Generator::GenerateTCFiles() {
         cout << "Opened " << filename << endl;
     }
 
+    int byteAddr = 0;  //for mem address
     for (int i = 0; i < generatedInstructions.size(); ++i) {
-        ofs << "mem[" << i << "] = 32'b"
-            << generatedInstructions[i].first << "; // "
-            << generatedInstructions[i].second << endl;
+        string instruction = generatedInstructions[i].first;
+        string assembly = generatedInstructions[i].second;
+
+        // Split 32-bit instruction into 4 bytes
+
+        string byte0 = instruction.substr(24, 8);  // bits [7:0]
+        string byte1 = instruction.substr(16, 8);  // bits [15:8]
+        string byte2 = instruction.substr(8, 8);   // bits [23:16]
+        string byte3 = instruction.substr(0, 8);   // bits [31:24]
+
+        // Output bytes in little-endian order with memory addresses
+        ofs << "mem[" << byteAddr++ << "] = 8'b" << byte0 << "; // " << assembly << " [byte 1]" << endl;
+        ofs << "mem[" << byteAddr++ << "] = 8'b" << byte1 << "; // " << " [byte 2]" << endl;
+        ofs << "mem[" << byteAddr++ << "] = 8'b" << byte2 << "; // " << " [byte 3]" << endl;
+        ofs << "mem[" << byteAddr++ << "] = 8'b" << byte3 << "; // " << " [byte 4]" << endl;
     }
 
     ofs.close();
@@ -361,7 +386,20 @@ void Generator::GenerateMem() {
     }
 
     for (int i = 0; i < generatedInstructions.size(); ++i) {
-        ofs << generatedInstructions[i].first << endl;
+        string instruction = generatedInstructions[i].first;
+
+        // Split 32-bit instruction into 4 bytes using little endian
+
+        string byte0 = instruction.substr(24, 8);  // bits [7:0]
+        string byte1 = instruction.substr(16, 8);  // bits [15:8]
+        string byte2 = instruction.substr(8, 8);   // bits [23:16]
+        string byte3 = instruction.substr(0, 8);   // bits [31:24]
+
+        //Output bytes
+        ofs << byte0 << endl;
+        ofs << byte1 << endl;
+        ofs << byte2 << endl;
+        ofs << byte3 << endl;
     }
     ofs.close();
 
