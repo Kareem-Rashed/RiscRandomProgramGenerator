@@ -444,8 +444,8 @@ string imm;
 
   // To initialize registers used
     vector<ITypeSpec> StartingInstructions= {
-        {"addi", "000000000011", "00000", "000", "00010","0010011"}, // x2 = 3
-{"addi", "000000000010", "00000", "000", "00011","0010011"}, // x3 = 2
+        {"addi", "000000000010", "00000", "000", "00010","0010011"}, // x2 = 3
+{"addi", "000000000011", "00000", "000", "00011","0010011"}, // x3 = 2
 };
     for (auto&s : StartingInstructions) {
 
@@ -576,6 +576,33 @@ void Generator::GenerateAllIType() {
     string rs1 = "00010"; // x2
     string imm = "000000000001"; // 12-bit immediate = 1
 
+    struct STypeSpec
+    {
+        string name;
+        string imm;
+        string rs1;
+        string funct3;
+        string rd;
+        string opcode;
+
+    };
+
+
+    vector<STypeSpec> StartingInstructions= {
+        {"addi", "000000001000", "00000", "000", "00010", "0010011"},
+        {"addi", "000000000011", "00000", "000","00011","0010011"}
+    };
+    for (auto&s : StartingInstructions) {
+
+        string bin = s.imm + s.rs1 + s.funct3 + s.rd + s.opcode;
+        string asmcode = s.name + " x" + to_string(stoi(s.rd, nullptr, 2)) + ", x" + to_string(stoi(s.rs1, nullptr, 2)) + ", " + to_string(stoi(s.imm, nullptr, 2));
+        generatedInstructions.push_back({bin, asmcode});
+    }
+
+
+
+
+
     for (auto &i : i_instructions) {
         // I-type: imm[11:0] | rs1[4:0] | funct3[2:0] | rd[4:0] | opcode[6:0]
         string bin = imm + rs1 + i.funct3 + rd + i.opcode;
@@ -662,11 +689,9 @@ void Generator::GenerateAllSType() {
     for (auto&s : StartingInstructions) {
 
         string bin = s.imm + s.rs1 + s.funct3 + s.rd + s.opcode;
-
         string asmcode = s.name + " x" + to_string(stoi(s.rd, nullptr, 2)) + ", x" + to_string(stoi(s.rs1, nullptr, 2)) + ", " + to_string(stoi(s.imm, nullptr, 2));
         generatedInstructions.push_back({bin, asmcode});
     }
-
 
 
     for (auto &s : s_instructions) {
